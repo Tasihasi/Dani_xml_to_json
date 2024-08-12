@@ -114,15 +114,21 @@ function Convert_xml_to_json(string $path1): string {
     return $json;
 }
 
-// Helper function to flatten a multidimensional array
+/**
+ * Flattens a multidimensional array.
+ *
+ * @param array $array The array to flatten.
+ * @param string $prefix The prefix for array keys.
+ * @return array The flattened array.
+ */
 function flatten_array(array $array, string $prefix = ''): array {
     $result = [];
 
     foreach ($array as $key => $value) {
-        $new_key = $prefix . (empty($prefix) ? '' : '_') . $key;
+        $new_key = $prefix ? $prefix . '_' . $key : $key;
 
         if (is_array($value)) {
-            $result = array_merge($result, flatten_array($value, $new_key));
+            $result += flatten_array($value, $new_key);
         } else {
             $result[$new_key] = $value;
         }
@@ -131,58 +137,57 @@ function flatten_array(array $array, string $prefix = ''): array {
     return $result;
 }
 
+/**
+ * Extracts the normalized ID from an array item.
+ *
+ * @param array $item The array item.
+ * @return mixed The ID value or null if not found.
+ */
+function get_normalized_id(array $item) {
+    foreach ($item as $key => $value) {
+        if (strtolower($key) === 'id') {
+            return $value;
+        }
+    }
+    return null;
+}
 
-// Combines two json objects
-function Combining_2_jsons_by_id(string $json1, string $json2) {
-    echo "combining jsons";
+
+/**
+ * Combines two JSON objects by their IDs.
+ *
+ * @param string $json1 The first JSON object.
+ * @param string $json2 The second JSON object.
+ * @return string A JSON-encoded string representing the combined objects or an error message.
+ */
+function Combining_2_jsons_by_id(string $json1, string $json2): string {
+    echo "Combining JSON objects\n";
+
     // Decode JSON strings into associative arrays
     $array1 = json_decode($json1, true);
-    echo "Here is the array1: ", json_encode($array1, JSON_PRETTY_PRINT);
     $array2 = json_decode($json2, true);
-    echo "Here is the array2: ", json_encode($array2, JSON_PRETTY_PRINT);
 
-
-    // Check if JSON decoding was successful
     if (json_last_error() !== JSON_ERROR_NONE) {
-        return json_encode(["error" => "Invalid JSON input"]);
+        return json_encode(['error' => 'Invalid JSON input']);
     }
 
-    // Normalize the key to lowercase for 'id'
+    echo "Here is array1: ", json_encode($array1, JSON_PRETTY_PRINT), "\n";
+    echo "Here is array2: ", json_encode($array2, JSON_PRETTY_PRINT), "\n";
+
+    // Normalize and combine arrays by ID
     $combined = [];
 
-    // Function to get the 'id' from an array item
-    function get_normalized_id($item) {
-        foreach ($item as $key => $value) {
-            if (strtolower($key) === 'id') {
-                return $value;
-            }
-        }
-        return null; // Return null if no 'id' found
-    }
-
-    // Populate the combined array with data from the first JSON array
-    foreach ($array1 as $item) {
-        $id = get_normalized_id($item);
-        if ($id !== null) {
-            $combined[$id] = $item;
-        }
-    }
-
-    // Merge the second JSON array into the combined array
-    foreach ($array2 as $item) {
-        $id = get_normalized_id($item);
-        if ($id !== null) {
-            if (isset($combined[$id])) {
-                // If the id exists in both arrays, merge the arrays
-                $combined[$id] = array_merge($combined[$id], $item);
-            } else {
-                // If the id is only in the second array, just add it
-                $combined[$id] = $item;
+    foreach ([$array1, $array2] as $array) {
+        foreach ($array as $item) {
+            $id = get_normalized_id($item);
+            if ($id !== null) {
+                $combined[$id] = isset($combined[$id])
+                    ? array_merge($combined[$id], $item)
+                    : $item;
             }
         }
     }
 
-    // Return the combined array as a JSON string
     return json_encode(array_values($combined));
 }
 
