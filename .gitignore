@@ -1,0 +1,5 @@
+# ignore all xml files
+*.xml
+
+# ignore all excel files 
+*.xlsx
