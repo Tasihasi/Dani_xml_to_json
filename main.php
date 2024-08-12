@@ -1,6 +1,7 @@
 <?php
 ini_set('memory_limit', '1024M'); // or higher, e.g., '512M'
 
+echo "runing";
 
 
 // Function to recursively echo attributes of XML elements
@@ -59,12 +60,12 @@ function isValidJSON(string $json) {
  * @return string A JSON-encoded string representing the XML file's content or an error message.
  */
 function Convert_xml_to_json(string $path1): string {
+    echo "Converting xmls to json";
+
     // Check if the file exists
     if (!file_exists($path1)) {
         return json_encode(['error' => 'File does not exist']);
     }
-
-  
 
     // Read the content of the XML file
     $xmlContent = file_get_contents($path1);
@@ -74,8 +75,6 @@ function Convert_xml_to_json(string $path1): string {
         return json_encode(['error' => 'Unable to read the file']);
     }
 
-    
-
     // Convert the XML content to a SimpleXMLElement object
     $xml = simplexml_load_string($xmlContent, 'SimpleXMLElement', LIBXML_NOCDATA);
     
@@ -83,9 +82,8 @@ function Convert_xml_to_json(string $path1): string {
     if ($xml === false) {
         return json_encode(['error' => 'Invalid XML content']);
     }
-   
 
-    // Remove specific attributes
+    // Remove specific attributes (if needed)
     foreach ($xml->xpath('//InternalStock') as $node) {
         unset($node[0]);
     }
@@ -99,30 +97,44 @@ function Convert_xml_to_json(string $path1): string {
         unset($node[0]);
     }
 
+    // Convert XML to an associative array
+    $array = json_decode(json_encode($xml), true);
 
-    // Convert XML to JSON
-    $json = json_encode($xml);
+    // Flatten the array
+    $flattenedArray = flatten_array($array);
+
+    // Convert the flattened array back to JSON
+    $json = json_encode($flattenedArray, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
 
     // Check if JSON encoding was successful
     if ($json === false) {
-        return json_encode(['error' => 'Failed to convert XML to JSON']);
+        return json_encode(['error' => 'Failed to convert flattened array to JSON']);
     }
 
-    // Decode JSON to an associative array
-    $data = json_decode($json, true); // true converts it to an associative array
-
-    // Ensure that all Unicode sequences are properly decoded
-    $decodedJson = json_encode($data, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
-
-    // Check if JSON re-encoding was successful
-    if ($decodedJson === false) {
-        return json_encode(['error' => 'Failed to decode Unicode sequences']);
-    }
-
-    return $decodedJson;
+    return $json;
 }
 
+// Helper function to flatten a multidimensional array
+function flatten_array(array $array, string $prefix = ''): array {
+    $result = [];
+
+    foreach ($array as $key => $value) {
+        $new_key = $prefix . (empty($prefix) ? '' : '_') . $key;
+
+        if (is_array($value)) {
+            $result = array_merge($result, flatten_array($value, $new_key));
+        } else {
+            $result[$new_key] = $value;
+        }
+    }
+
+    return $result;
+}
+
+
+// Combines two json objects
 function Combining_2_jsons_by_id(string $json1, string $json2) {
+    echo "combining jsons";
     // Decode JSON strings into associative arrays
     $array1 = json_decode($json1, true);
     echo "Here is the array1: ", json_encode($array1, JSON_PRETTY_PRINT);
